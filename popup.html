@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="utf-8">
+        <link href="popup.css" rel="stylesheet">
+    </head>
+    <body>
+        <div id="app_name">YouTube Range Annotation</div>
+        <div id="on_off">Activate Extension [ON/OFF]</div>
+        <div id="download">Download Annotation</div>
+        <div id="num_label">
+            <div id="num_label_k">#of label:4</div>
+            <input id="num_label_v" type="range" min=1 max=10 step=1 value=4></input>
+        </div>
+        <div id="num_label_name_head">Label Names</div>
+        <div id="num_label_name"></div>
+        <div id="reload">Reload YouTube to reflect the label settings.</div>
+    </body>
+    <script src="js/jquery-3.0.0.min.js"></script>
+    <script src="popup.js"></script>
+</html>
