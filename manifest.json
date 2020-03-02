@@ -13,7 +13,7 @@
         }
     ],  
     "background": {
-        "scripts": ["eventpage.js"], 
+        "scripts": ["js/dexie.min.js", "eventpage.js"], 
         "persistent": false
     }, 
     "browser_action": {

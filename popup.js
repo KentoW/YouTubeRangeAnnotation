@@ -1,26 +1,27 @@
-
-/* 初期化 */
-if (window.localStorage.getItem("num_labels") != null){
+var db = new Dexie("yta_database");
+db.version(1).stores({annotation: 'id, title, data', label_setting: "id, num_labels, labels", on_off: "id, status"});
+db.open();
+db.label_setting.where('id').equals(1).first().then((r) => {
     draw_popup();
-}
+});
 
 /* draw label fields */
 function draw_popup() {
-    var num = parseInt(window.localStorage.getItem("num_labels"));
-    $("#num_label_k").text("# of label:" + String(num))
-    $("#num_label_v").val(num);
-
-    $("#num_label_name").empty();
-    var labels = JSON.parse(window.localStorage.getItem("labels"));
-    for (let i=0; i<Number(window.localStorage.getItem("num_labels")); i++) {
-        let $item = $("<div/>").addClass("num_label_item");
-        let label_name = labels[i];
-        $("<div/>").addClass("num_label_item_k").text("Label " + String(i+1)).appendTo($item);
-        $("<input/>").addClass("num_label_item_v").attr("label_id", i).attr("type", "text").attr("placeholder", "Type label name").val(label_name).appendTo($item);
-        $item.appendTo("#num_label_name");
-    }
+    db.label_setting.where('id').equals(1).first().then((r) => {
+        let num = r.num_labels;
+        let labels = r.labels;
+        $("#num_label_k").text("# of label:" + String(num));
+        $("#num_label_v").val(num);
+        $("#num_label_name").empty();
+        for (let i=0; i<num; i++) {
+            let $item = $("<div/>").addClass("num_label_item");
+            let label_name = labels[i];
+            $("<div/>").addClass("num_label_item_k").text("Label " + String(i+1)).appendTo($item);
+            $("<input/>").addClass("num_label_item_v").attr("label_id", i).attr("type", "text").attr("placeholder", "Type label name").val(label_name).appendTo($item);
+            $item.appendTo("#num_label_name");
+        }
+    });
 }
-
 
 /* download data */
 $(document).on("click", "#download", function(){
@@ -28,68 +29,63 @@ $(document).on("click", "#download", function(){
 });
 
 function write_file() {
-    let annotations = JSON.parse(window.localStorage.getItem("annotations"));
-    let labels = JSON.parse(window.localStorage.getItem("labels"));
-    var num = parseInt(window.localStorage.getItem("num_labels"));
-    let output = {}
-    if (Object.keys(annotations).length > 0) {
-        for (let youtube_id in annotations) {
-            let has_value = false;
-            let dict = {"@title": annotations[youtube_id][1]};
-            for (let i=0; i<num; i++) {
-                let label_name = labels[i];
-                dict[label_name] = [];
-                for (let j in annotations[youtube_id][0][i]) {
-                    has_value = true;
-                    dict[label_name].push(annotations[youtube_id][0][i][j]);
-                }
+    db.label_setting.where('id').equals(1).first().then((r) => {
+        /* download label data */
+        let labels = r.labels;
+        let num = r.num_labels;
+        let labelJson = JSON.stringify(labels.slice(0, num));
+        let downLoadLink = document.createElement("a");
+        downLoadLink.download = "YTRA_label.jsonl";
+        downLoadLink.href = URL.createObjectURL(new Blob([labelJson], {type: "text.plain"}));
+        downLoadLink.dataset.downloadurl = ["text/plain", downLoadLink.download, downLoadLink.href].join(":");
+        downLoadLink.click();
+        /* download annotation data */
+        db.annotation.toArray().then(function(annotations){
+            let output = [];
+            for (let d in annotations) {
+                output.push(JSON.stringify(annotations[d]));
             }
-            if (has_value = true) {
-                output[youtube_id] = dict;
-            }
-        }
-    }
-    let resultJson = JSON.stringify(output);
-    let downLoadLink = document.createElement("a");
-    downLoadLink.download = "YTRA_result.json";
-    downLoadLink.href = URL.createObjectURL(new Blob([resultJson], {type: "text.plain"}));
-    downLoadLink.dataset.downloadurl = ["text/plain", downLoadLink.download, downLoadLink.href].join(":");
-    downLoadLink.click();
+            let resultJson = output.join("\n");
+            let downLoadLink = document.createElement("a");
+            downLoadLink.download = "YTRA_data.jsonl";
+            downLoadLink.href = URL.createObjectURL(new Blob([resultJson], {type: "text.plain"}));
+            downLoadLink.dataset.downloadurl = ["text/plain", downLoadLink.download, downLoadLink.href].join(":");
+            downLoadLink.click();
+        })
+    });
 }
-
 
 /* change num of label */
 $(document).on("change", "#num_label_v", function(){
     var num = $(this).val();
-    window.localStorage.setItem("num_labels", num);
-    draw_popup();
+    db.label_setting.where('id').equals(1).first().then((r) => {
+        db.label_setting.put({
+            id: 1, 
+            num_labels: num, 
+            labels: r.labels
+        })
+        draw_popup();
+    });
 });
 
 /* change label names */
 $(document).on("change", ".num_label_item_v", function(){
-    var labels = JSON.parse(window.localStorage.getItem("labels"));
-    var label_id = parseInt($(this).attr("label_id"));
-    labels[label_id] = $(this).val();
-    window.localStorage.setItem("labels", JSON.stringify(labels));
+    db.label_setting.where('id').equals(1).first().then((r) => {
+        let labels = r.labels;
+        var label_id = parseInt($(this).attr("label_id"));
+        labels[label_id] = $(this).val();
+        db.label_setting.put({
+            id: 1, 
+            num_labels: r.num_labels, 
+            labels: labels
+        })
+    });
 });
 
-
-
-/* ON OFF */
+/* toggle ON-OFF */
 $(document).on("click", "#on_off", function(){
-    if (window.localStorage.getItem("yta") == "true"){
-        window.localStorage.setItem("yta", "false");
-        chrome.runtime.sendMessage({
-            from:    'popup', 
-            subject: 'extension_off' 
-        });
-        window.close();
-    }else{
-        window.localStorage.setItem("yta", "true");
-        chrome.runtime.sendMessage({
-            from:    'popup', 
-            subject: 'extension_on' 
-        });
-        window.close();
-    }
+    chrome.runtime.sendMessage({
+        from:    'popup', 
+        subject: 'switch_on_off' 
+    });
 }); 

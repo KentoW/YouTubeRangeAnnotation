@@ -1,5 +1,4 @@
-// ブラウザ画面
-
+// YouTube page
 var first_load_f = true;
 var old_url;
 var N_TL = 4;
@@ -10,7 +9,7 @@ var PREVIEW_INTERVAL = 500;
 let anno = {};
 
 
-// 便利関数
+// misc
 function msToTime(millis) {
     var minutes = Math.floor(millis / 60000);
     var seconds = ((millis % 60000) / 1000).toFixed(0);
@@ -32,10 +31,9 @@ var getUrlParameter = function getUrlParameter(sParam) {
 };
 
 
-// オーディオ関係
+// Audio processing
 function load_audio() {
     videoEl = document.querySelector('video');
-
     // Video Event
     videoEl.onloadstart = function() {      // videoがロードし始めたら(都合の良いことに2番目からのビデオしか反映されない)
         draw_note();
@@ -65,22 +63,20 @@ function load_audio() {
     };
 }
 
-/* アノテーションツールの描画 */
+/* annotation tool */
 function draw_tool() {
-
     /* videos */
     var $videos = $("<div/>").attr("id", "yta_videos");
     var $v_list = $("<div/>").attr("id", "yta_video_list");
     $("<div/>").attr("id", "yta_video_head").text("Annotated videos").appendTo($v_list);
     $("<div/>").attr("id", "yta_video_content").appendTo($v_list);
     $("<div/>").attr("id", "yta_video_close").text("close").appendTo($v_list);
-
     $v_list.appendTo($videos);
-    $videos.appendTo($("body"));
-
-
-    /* time line */
+    $videos.appendTo($("#content"));
     var $panel = $("<div/>").attr("id", "yta_tool");
+    /* play bar */
+    $("<div/>").attr("id", "yta_play_position").appendTo($panel);
+    /* time line */
     var $work = $("<div/>").attr("id", "yta_work_space");
     for (let i=0; i<N_TL; i++) {
         var $tl = $("<div/>").attr("id", "yta_tl_"+i).addClass("yta_tl");
@@ -91,20 +87,17 @@ function draw_tool() {
         $tl.appendTo($work);
     }
     $work.appendTo($panel);
-
+    /* bottom bar */
     var $bottom = $("<div/>").attr("id", "yta_bottom");
     $("<div/>").attr("id", "yta_show").text("Show annotated videos").appendTo($bottom);
     $("<div/>").attr("id", "yta_cr").text("YouTube Range Annotation.").appendTo($bottom)
     $bottom.appendTo($panel);
-
-    $("<div/>").attr("id", "yta_play_position").appendTo($panel);
-
     $("#info-contents").before($panel);
     draw_note();
 }
 
 
-/* アノテーションの描画 */
+/* draw annotated data */
 function draw_note() {
     $(".yta_note").remove();
     anno = {}
@@ -125,22 +118,15 @@ function draw_note() {
                     startRatio = line[j]["st"] / videoEl.duration;
                     endRatio = line[j]["et"] / videoEl.duration;
                     let widthRatio = (line[j]["et"] - line[j]["st"]) / videoEl.duration;
-
                     let note_left = 100 * startRatio;
                     let note_width = 100 * widthRatio;
-                    //console.log(note_left);
-
                     let $note = $("<div/>").addClass("yta_note")
                         .css({"left": String(note_left) + "%", "width": String(note_width) + "%"})
                         .attr("starttime", line[j]["st"])
                         .attr("endtime", line[j]["et"])
-
-
                     $("<div/>").text(msToTime(line[j]["st"]*1000) + " - " + msToTime(line[j]["et"]*1000)).addClass("yta_note_text").appendTo($note);
-
                     $("<div/>").addClass("yta_remove_note").text("×").appendTo($note);
                     $("<div/>").addClass("yta_note_nob").appendTo($note);
-
                     $note.appendTo("#yta_tl_line_" + String(i));
                 }
             }
@@ -149,7 +135,7 @@ function draw_note() {
 }
 
 
-/* アノテーションの保存 */
+/* save annotation */
 function save_data() {
     anno = {}
     let youtubeId = getUrlParameter("v");
@@ -186,23 +172,18 @@ function save_data() {
     });
 }
 
-/* 曲目の表示 */
-
+/* show song list */
 $(document).on("click", "#yta_show", function(e){
     $("#yta_video_content").empty();
-
     chrome.runtime.sendMessage({from: "content", subject: "showVideos"},  function(response) {
-        for (let i in response["ids"]) {
-            let youtube_id = response["ids"][i][0];
-            let title = response["ids"][i][1];
+        for (let i in response["data"]) {
+            let youtube_id = response["data"][i]["id"];
+            let title = response["data"][i]["title"]
             $("<a/>").attr("href", "/watch?v="+youtube_id)
                 .text(title)
                 .appendTo("#yta_video_content");
         }
     });
-
-
-
     $("#yta_videos").fadeIn("fast");
 });
 
@@ -211,8 +192,7 @@ $(document).on("click", "#yta_video_close", function(e){
 });
 
 
-
-/* 再生位置の変更 */
+/* change play position */
 function move_audio(tempX) {
     var parentOffset = $(".yta_tl_line").offset(); 
     var position = tempX / $(".yta_tl_line").width();
@@ -222,7 +202,7 @@ function move_audio(tempX) {
 
 $(document).on("click", ".yta_tl_prev", function(e){
     var label_num = parseInt($(this).attr("id").split("_")[3]);
-    var currentTime = videoEl.currentTime-1;      // 少し前にずらす（頭悪い）
+    var currentTime = videoEl.currentTime-1;      // stupid
     let old_t = 0;
     for (let i in anno["data"][label_num]) {
         let st = Number(anno["data"][label_num][i]["st"]);
@@ -250,8 +230,7 @@ $(document).on("click", ".yta_tl_next", function(e){
 });
 
 
-
-/* ラインの追加 */
+/* add note */
 var mode = "none";
 var $select_obj = "";
 var offset_left = 0;
@@ -290,7 +269,6 @@ $(document).on("mousemove", ".yta_tl_line", function(e){
     }
 });
 
-
 $(document).on("click", ".yta_tl_line", function(e){
     if (mode == "none") {
         if (!$(e.target).hasClass("yta_note") && !$(e.target).hasClass("yta_note_nob") && !$(e.target).hasClass("yta_remove_note") && !$(e.target).hasClass("yta_note_text")) {
@@ -317,19 +295,15 @@ $(document).on("click", ".yta_tl_line", function(e){
         $("#yta_note_unclear").remove();
         var $note = $("<div/>").addClass("yta_note").css({"left": String(note_left) + "%", "width": String(note_width) + "%", "z-index":z_index});
         z_index++;
-
         var startTime = videoEl.duration*startRatio;
         $note.attr("starttime", startTime);
-
         var parentOffset = $(this).offset(); 
         var relX = e.pageX - parentOffset.left;
         var position = relX / $(this).width();
         endRatio = position;
         var endTime = videoEl.duration*endRatio;
         $note.attr("endtime", endTime);
-
         $("<div/>").text(msToTime(startTime*1000) + " - " + msToTime(endTime*1000)).addClass("yta_note_text").appendTo($note);
-
         $("<div/>").addClass("yta_remove_note").text("×").appendTo($note);
         $("<div/>").addClass("yta_note_nob").appendTo($note);
         $note.appendTo($select_obj);
@@ -353,26 +327,21 @@ $(document).on("click", ".yta_note", function(e){
         $($select_obj).removeClass("select");
         startRatio = $($select_obj).position().left / $(".yta_tl_line").width();
         endRatio = ($($select_obj).position().left + $($select_obj).width()) / $(".yta_tl_line").width();
-
         var startTime = videoEl.duration*startRatio;
         $(this).attr("starttime", startTime);
         var endTime = videoEl.duration*endRatio;
         $(this).attr("endtime", endTime);
         $(this).children(".yta_note_text").text(msToTime(startTime*1000) + " - " + msToTime(endTime*1000));
-
         var note_left = 100 * startRatio;
         var note_width = 100 * $($select_obj).width() / $(".yta_tl_line").width();
-
         if (note_width < 2) {
             note_width = 2;
         }
         $($select_obj).css({"left": String(note_left) + "%", "width": String(note_width) + "%"});
-
         if (timeoutID != 0) {
             clearTimeout(timeoutID);
         }
         move_audio($($select_obj).position().left);
-
         $select_obj = "";
         mode = "none";
         save_data();
@@ -399,18 +368,15 @@ $(document).on("click", ".yta_note_nob", function(e){
         var endTime = videoEl.duration*endRatio;
         $(this).parent().attr("endtime", endTime);
         $(this).parent().children(".yta_note_text").text(msToTime(startTime*1000) + " - " + msToTime(endTime*1000));
-
         var note_left = 100 * startRatio;
         var note_width = 100 * $($select_obj).width() / $(".yta_tl_line").width();
         if (note_width < 1) {
             note_width = 1;
         }
-
         if (timeoutID != 0) {
             clearTimeout(timeoutID);
         }
         move_audio($($select_obj).position().left + $($select_obj).width());
-
         $($select_obj).css({"left": String(note_left) + "%", "width": String(note_width) + "%"});
         $select_obj = "";
         mode = "none";
@@ -428,9 +394,7 @@ $(document).on("click", ".yta_remove_note", function(e){
 });
 
 
-
-
-// メッセージ
+// message communication
 chrome.extension.onMessage.addListener(function(request, sender, response) {
     // Reload Event
     if (request.type === 'getDoc') {
@@ -442,13 +406,13 @@ chrome.extension.onMessage.addListener(function(request, sender, response) {
                 labels = response.labels;
                 N_TL = response.num_labels;
                 load_audio();
-                setTimeout("draw_tool()", 2000);       // この処理は頭わるい
+                setTimeout("draw_tool()", 2000);       // stupid
                 first_load_f = false;
             }
             old_url = window.location.href;
         });
         $(".yta_note").remove();
-        setTimeout("draw_note()", 1000);       // この処理は頭わるい
+        setTimeout("draw_note()", 1000);       // stupid
     }
     return true;
 });
