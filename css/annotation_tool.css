@@ -44,6 +44,8 @@
 #yta_waveform {
     position:relative;
     width:100%;
+    height:40px;
+    cursor:pointer;
 }
 
 #yta_work_space {
@@ -80,7 +82,7 @@
     left:0px;
     background: rgba(58, 58, 58, 0.5);
     color:white;
-    cursor:crosshair;
+    cursor:copy;
 }
 
 
@@ -162,12 +164,11 @@
     position: absolute;
     height: 30px;
     width: 1px;
-    cursor:move;
+    cursor:grab;
     padding:0px;
     overflow:hidden;
     border-right:1px solid rgba(0, 104, 112, 1);
     border-left:1px solid rgba(0, 104, 112, 1);
-    overflow:hidden;
 }
 .yta_note_text{
     position:absolute;
@@ -178,12 +179,13 @@
 
 
 .yta_note:hover{
-    background:#2C8CEB;
+    background:rgba(44, 140, 235, 0.8);
     color:white;
 }
 .yta_note.select{
     background: rgba(0, 164, 172, 0.5);
     color:white;
+    cursor:grabbing;
 }
 
 .yta_note_nob {

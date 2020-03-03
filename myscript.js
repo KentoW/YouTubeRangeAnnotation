@@ -29,40 +29,94 @@ var getUrlParameter = function getUrlParameter(sParam) {
     }
 };
 
-var getBufferSize = function() {
-    if (/(Win(dows )?NT 6\.2)/.test(navigator.userAgent)) {
-        return 1024;  // Windows 8
-    } else if (/(Win(dows )?NT 6\.1)/.test(navigator.userAgent)) {
-        return 1024;  // Windows 7
-    } else if (/(Win(dows )?NT 6\.0)/.test(navigator.userAgent)) {
-        return 2048;  // Windows Vista
-    } else if (/Win(dows )?(NT 5\.1|XP)/.test(navigator.userAgent)) {
-        return 4096;  // Windows XP
-    } else if (/Mac|PPC/.test(navigator.userAgent)) {
-        return 2048;  // Mac OS X
-    } else if (/Linux/.test(navigator.userAgent)) {
-        return 8192;  // Linux
-    } else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-        return 2048;  // iOS
-    } else {
-        return 16384;  // Otherwise
-    }
+var queryStringMap = function(data) {
+    var result = {};
+    data.split('&').forEach(function(entry) {
+        result[
+            decodeURIComponent(entry.substring(0, entry.indexOf('=')))] =
+            decodeURIComponent(entry.substring(entry.indexOf('=') + 1));
+    });
+    return result;
 };
 
 
-var videoEl;
+
+// Waveform
+var xhr;
+var audioContext = new AudioContext();
+var canvas;
+function get_stream() {
+    var youtubeId = getUrlParameter("v");
+    $.ajax({
+        type: "GET", 
+        url: "https://www.youtube.com/get_video_info",
+        dataType:'text',
+        data: {video_id: youtubeId}, 
+        success: function(response) {
+            let get_video_info = queryStringMap(response);
+            let pl_res = JSON.parse(get_video_info["player_response"]);
+            let strms = pl_res["streamingData"]["adaptiveFormats"];
+            let audio_url = strms[strms.length-1]['url'];
+            //console.log(audio_url);
+            if (audio_url != undefined) {
+                xhr = new XMLHttpRequest();
+                xhr.responseType = 'arraybuffer';
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        audioContext.decodeAudioData(xhr.response, function(buffer) { 
+                            canvas = document.getElementById("yta_waveform");
+                            canvas.height = $("#yta_waveform").height();
+                            canvas.width = $("#yta_waveform").width();
+                            drawBuffer(canvas.width, canvas.height, canvas, buffer); 
+                        });
+                    }
+                };
+                xhr.open('GET', audio_url, true);
+                xhr.send(null);
+            }
+        }, 
+        error:function() {
+        }
+    });
+}
+
+
+// draw waveform
 var context;
-var source;
+function drawBuffer(width, height, canvas, buffer) {
+    context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    var data = buffer.getChannelData(0);
+    var step = Math.ceil(data.length / width);
+    var amp = height/2;
+    for(var i=0; i < width; i++){
+        var min = 1.0;
+        var max = -1.0;
+        for (var j=0; j<step; j++) {
+            var datum = data[(i*step)+j]; 
+            if (datum < min)
+                min = datum;
+            if (datum > max)
+                max = datum;
+        }
+        context.fillStyle = "rgb(200, 200, 200)";
+        context.fillRect(i, (1+min)*amp, 1, Math.max(1,(max-min)*amp));
+    }
+}
+
+// change plau position
+$(document).on("click", "#yta_waveform", function(e){
+    var parentOffset = $(this).offset(); 
+    var relX = e.pageX - parentOffset.left;
+    var position = relX / $(this).width();
+    var duration = videoEl.duration;
+    videoEl.currentTime = duration*position;
+});
 
 // Audio processing
+var videoEl;
 function load_audio() {
-    window.AudioContext = window.AudioContext || window.webkitAudioContext;
-    context = new AudioContext();
-    processor = context.createScriptProcessor(getBufferSize(), 2, 2);
     videoEl = document.querySelector('video');
-
-    source = context.createMediaElementSource(videoEl);
-    source.connect(context.destination);
 
     // Video Event
     videoEl.onloadstart = function() {
@@ -111,6 +165,8 @@ function draw_tool() {
     $v_list.appendTo($videos);
     $videos.appendTo($("#content"));
     var $panel = $("<div/>").attr("id", "yta_tool");
+    /* waveform */
+    $("<canvas/>").attr("id", "yta_waveform").appendTo($panel);
     /* play bar */
     $("<div/>").attr("id", "yta_play_position").appendTo($panel);
     /* time line */
@@ -141,14 +197,18 @@ function draw_tool() {
 
 
 /* draw annotated data */
+var wf_timeoutID = 0;
 function draw_note() {
+    if (context != undefined) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+    }
     $(".yta_note").remove();
     $select_obj = "";
     mode = "none";
     anno = {}
     let youtubeId = getUrlParameter("v");
     anno["youtube_id"] = youtubeId;
-    let title = document.title.slice(0, -9);
+    let title = document.title.slice(0, -10);
     anno["title"] = title;
     anno["data"] = {};
     chrome.runtime.sendMessage({from: "content", subject: "loadData", youtube_id: youtubeId},  function(response) {
@@ -178,14 +238,26 @@ function draw_note() {
         }
         check_ad();
     });
+    if (ad_status == false) {
+        if (wf_timeoutID != 0) {
+            clearTimeout(wf_timeoutID);
+        }
+        wf_timeoutID = setTimeout(function (){
+            //console.log("draw waveform");
+            get_stream();
+        }, 2000);
+    }
 }
 
 /* check Ad video */
+var ad_status = false;
 function check_ad() {
     if ($(".ytp-play-progress").css("background-color") == "rgb(255, 0, 0)") {
         $("#yta_tool_hidden").css("display", "none");
+        ad_status = false;
     } else {
         $("#yta_tool_hidden").css("display", "block");
+        ad_status = true;
     }
 }
 
@@ -476,9 +548,10 @@ chrome.extension.onMessage.addListener(function(request, sender, response) {
             }
             old_url = window.location.href;
         });
-        // draw notes
-        $(".yta_note").remove();
-        setTimeout("draw_note()", 1000);       // stupid
+        if (first_load_f == false) {
+            $(".yta_note").remove();
+            setTimeout("draw_note()", 1000);       // stupid
+        }
     }
     return true;
 });
