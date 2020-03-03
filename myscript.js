@@ -59,26 +59,15 @@ function load_audio() {
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     context = new AudioContext();
     processor = context.createScriptProcessor(getBufferSize(), 2, 2);
-    videoEl = document.querySelector('video.html5-main-video');
+    videoEl = document.querySelector('video');
 
     source = context.createMediaElementSource(videoEl);
-    console.log(videoEl.src);
     source.connect(context.destination);
 
-
-//    let fileReader = new FileReader();
-//    let arrayBuffer;
-//    fileReader.onloadend = () => {
-//        arrayBuffer = fileReader.result;
-//        console.log(arrayBuffer);
-//    }
-//    fileReader.readAsArrayBuffer(source.mediaElement.src);
-
-
     // Video Event
-    videoEl.onloadstart = function() {      // videoがロードし始めたら(都合の良いことに2番目からのビデオしか反映されない)
-        draw_note();
+    videoEl.onloadstart = function() {
         //console.log("LOAD START");
+        draw_note();
     };
     videoEl.onloadeddata = function() {
         //console.log("LOADED");
@@ -91,6 +80,7 @@ function load_audio() {
     };
     videoEl.onplay = function() {
         //console.log("PLAY");
+        check_ad();
     };
     videoEl.onpause = function() {
         //console.log("PAUSE");
@@ -139,6 +129,12 @@ function draw_tool() {
     $("<div/>").attr("id", "yta_show").text("Show annotated videos").appendTo($bottom);
     $("<div/>").attr("id", "yta_cr").text("YouTube Range Annotation.").appendTo($bottom)
     $bottom.appendTo($panel);
+
+    /* hidden tool */
+    var $hidden = $("<div/>").attr("id", "yta_tool_hidden");
+    $("<div/>").text('YouTube Range Annotation').appendTo($hidden);
+    $hidden.appendTo($panel);
+
     $("#info-contents").before($panel);
     draw_note();
 }
@@ -178,9 +174,18 @@ function draw_note() {
                 }
             }
         }
+        check_ad();
     });
 }
 
+/* check Ad video */
+function check_ad() {
+    if ($(".ytp-play-progress").css("background-color") == "rgb(255, 0, 0)") {
+        $("#yta_tool_hidden").css("display", "none");
+    } else {
+        $("#yta_tool_hidden").css("display", "block");
+    }
+}
 
 /* save annotation */
 function save_data() {
@@ -445,7 +450,9 @@ $(document).on("click", ".yta_remove_note", function(e){
 chrome.extension.onMessage.addListener(function(request, sender, response) {
     // Reload Event
     if (request.type === 'getDoc') {
-        console.log("Reload Page");
+        //console.log("Reload Page");
+        check_ad();
+        // draw tool (only first time)
         z_index = 0;
         chrome.runtime.sendMessage({from: "content", subject: "check_extension"},  function(response) {
             var on_off = response.res;
@@ -458,6 +465,7 @@ chrome.extension.onMessage.addListener(function(request, sender, response) {
             }
             old_url = window.location.href;
         });
+        // draw notes
         $(".yta_note").remove();
         setTimeout("draw_note()", 1000);       // stupid
     }

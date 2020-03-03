@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css?family=M+PLUS+1p');
+
+
 #yta_tool {
     position:relative;
     width:100%;
@@ -12,6 +15,30 @@
     background:#191919;
     border-radius:4px;
     margin-top:5px;
+}
+
+#yta_tool *{
+    font-family:'M PLUS 1p';
+}
+
+#yta_tool_hidden {
+    position:absolute;
+    width:100%;
+    height:calc(100% - 15px);
+    background:black;
+    top:0px;
+    display:none;
+    overflow:hidden;
+}
+#yta_tool_hidden>div {
+    position:absolute;
+    text-align:center;
+    font-size:20pt;
+    color:rgb(180, 180, 180);
+    width:100%;
+    height:40px;
+    font-weight:bold;
+    top:calc(50% - 20px);
 }
 
 #yta_waveform {
