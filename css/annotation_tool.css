@@ -9,6 +9,14 @@
     -ms-user-select: none; /* IE10かららしい */
     border-left:1px solid rgb(58, 58, 58);
     border-right:1px solid rgb(58, 58, 58);
+    background:#191919;
+    border-radius:4px;
+    margin-top:5px;
+}
+
+#yta_waveform {
+    position:relative;
+    width:100%;
 }
 
 #yta_work_space {
@@ -31,7 +39,7 @@
     left:0px;
     padding-left:10px;
     padding-right:10px;
-    background: rgba(25, 25, 25, 1);
+    background: rgba(25, 25, 25, 0.5);
     color:white;
     font-size:10pt;
     overflow:hidden;
@@ -86,7 +94,7 @@
 
 #yta_play_position {
     position:absolute;
-    background:#e17;
+    background:#db4186;
     width:1px;;
     height:calc(100% - 15px);
     left:0px;
@@ -121,7 +129,7 @@
 
 
 .yta_note{
-    background: rgba(0, 164, 172, 1);
+    background: rgba(0, 164, 172, 0.8);
     overflow: hidden;
     position: absolute;
     height: 30px;

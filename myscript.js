@@ -3,7 +3,6 @@ var first_load_f = true;
 var old_url;
 var N_TL = 4;
 var labels = ["Label 1", "Label 2", "Label 3", "Label 4", "Label 5", "Label 6", "Label 7", "Label 8", "Label 9", "Label 10"];
-var videoEl;
 var z_index = 10;
 var PREVIEW_INTERVAL = 500;
 let anno = {};
@@ -30,14 +29,62 @@ var getUrlParameter = function getUrlParameter(sParam) {
     }
 };
 
+var getBufferSize = function() {
+    if (/(Win(dows )?NT 6\.2)/.test(navigator.userAgent)) {
+        return 1024;  // Windows 8
+    } else if (/(Win(dows )?NT 6\.1)/.test(navigator.userAgent)) {
+        return 1024;  // Windows 7
+    } else if (/(Win(dows )?NT 6\.0)/.test(navigator.userAgent)) {
+        return 2048;  // Windows Vista
+    } else if (/Win(dows )?(NT 5\.1|XP)/.test(navigator.userAgent)) {
+        return 4096;  // Windows XP
+    } else if (/Mac|PPC/.test(navigator.userAgent)) {
+        return 2048;  // Mac OS X
+    } else if (/Linux/.test(navigator.userAgent)) {
+        return 8192;  // Linux
+    } else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        return 2048;  // iOS
+    } else {
+        return 16384;  // Otherwise
+    }
+};
+
+
+var videoEl;
+var context;
+var source;
 
 // Audio processing
 function load_audio() {
-    videoEl = document.querySelector('video');
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    context = new AudioContext();
+    processor = context.createScriptProcessor(getBufferSize(), 2, 2);
+    videoEl = document.querySelector('video.html5-main-video');
+
+    source = context.createMediaElementSource(videoEl);
+    console.log(videoEl.src);
+    source.connect(context.destination);
+
+
+//    let fileReader = new FileReader();
+//    let arrayBuffer;
+//    fileReader.onloadend = () => {
+//        arrayBuffer = fileReader.result;
+//        console.log(arrayBuffer);
+//    }
+//    fileReader.readAsArrayBuffer(source.mediaElement.src);
+
+
     // Video Event
     videoEl.onloadstart = function() {      // videoがロードし始めたら(都合の良いことに2番目からのビデオしか反映されない)
         draw_note();
         //console.log("LOAD START");
+    };
+    videoEl.onloadeddata = function() {
+        //console.log("LOADED");
+    };
+    videoEl.onprogress = function() {
+        //console.log("DOWNLOADING VIDEO");
     };
     videoEl.onended = function() {
         //console.log("END");
@@ -264,7 +311,7 @@ $(document).on("mousemove", ".yta_tl_line", function(e){
             clearTimeout(timeoutID);
         }
         timeoutID = setTimeout(function (){
-            move_audio(mouseX);
+            move_audio(mouseX + 4);         // NOTE add width of nob (4px) 
         }, PREVIEW_INTERVAL);
     }
 });
@@ -352,7 +399,7 @@ $(document).on("click", ".yta_note_nob", function(e){
     if (mode == "none") {
         if ($(e.target).hasClass("yta_note_nob")) {
             $(this).parent().children(".yta_note_text").text("");
-            offset_left = mouseX - $(this).parent().width();
+            offset_left = mouseX - $(this).position().left - $(this).width(); 
             $select_obj = $(this).parent();
             z_index++;
             $(this).parent().css("z-index", z_index).addClass("select");
@@ -376,7 +423,7 @@ $(document).on("click", ".yta_note_nob", function(e){
         if (timeoutID != 0) {
             clearTimeout(timeoutID);
         }
-        move_audio($($select_obj).position().left + $($select_obj).width());
+        move_audio($($select_obj).position().left + $($select_obj).width() + 4);    // NOTE add width of nob (4px) 
         $($select_obj).css({"left": String(note_left) + "%", "width": String(note_width) + "%"});
         $select_obj = "";
         mode = "none";
