@@ -4,7 +4,7 @@ var old_url;
 var N_TL = 4;
 var labels = ["Label 1", "Label 2", "Label 3", "Label 4", "Label 5", "Label 6", "Label 7", "Label 8", "Label 9", "Label 10"];
 var z_index = 10;
-var PREVIEW_INTERVAL = 500;
+var PREVIEW_INTERVAL = 700;
 let anno = {};
 
 
@@ -143,6 +143,8 @@ function draw_tool() {
 /* draw annotated data */
 function draw_note() {
     $(".yta_note").remove();
+    $select_obj = "";
+    mode = "none";
     anno = {}
     let youtubeId = getUrlParameter("v");
     anno["youtube_id"] = youtubeId;
@@ -248,8 +250,10 @@ $(document).on("click", "#yta_video_close", function(e){
 function move_audio(tempX) {
     var parentOffset = $(".yta_tl_line").offset(); 
     var position = tempX / $(".yta_tl_line").width();
-    var duration = videoEl.duration;
-    videoEl.currentTime = duration*position;
+    if (position < 0.99) {
+        var duration = videoEl.duration;
+        videoEl.currentTime = duration*position;
+    }
 }
 
 $(document).on("click", ".yta_tl_prev", function(e){
@@ -379,13 +383,20 @@ $(document).on("click", ".yta_note", function(e){
         $($select_obj).removeClass("select");
         startRatio = $($select_obj).position().left / $(".yta_tl_line").width();
         endRatio = ($($select_obj).position().left + $($select_obj).width()) / $(".yta_tl_line").width();
+
+        if (startRatio < 0.0) {
+            startRatio = 0.0;
+        }
+        if (endRatio > 1){
+            endRatio = 1.0
+        }
         var startTime = videoEl.duration*startRatio;
         $(this).attr("starttime", startTime);
         var endTime = videoEl.duration*endRatio;
         $(this).attr("endtime", endTime);
         $(this).children(".yta_note_text").text(msToTime(startTime*1000) + " - " + msToTime(endTime*1000));
         var note_left = 100 * startRatio;
-        var note_width = 100 * $($select_obj).width() / $(".yta_tl_line").width();
+        var note_width = 100 * (endRatio - startRatio);
         if (note_width < 2) {
             note_width = 2;
         }

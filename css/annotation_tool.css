@@ -145,6 +145,7 @@
     height:11px;
     left:1px;
     top:1px;
+    font-size:6pt;
     border-radius:3px;
     text-align:center;
     background: rgba(58, 58, 58, 1);
@@ -172,7 +173,7 @@
     position:absolute;
     bottom:0px;
     left:2px;
-    font-size:5pt;
+    font-size:4pt;
 }
 
 
