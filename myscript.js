@@ -39,6 +39,24 @@ var queryStringMap = function(data) {
     return result;
 };
 
+function bz(a) {
+    a = a.split("");
+    a = cz(a, 61);
+    a = cz(a, 5);
+    a = a.reverse();
+    a = a.slice(2);
+    a = cz(a, 69);
+    a = a.slice(2);
+    a = a.reverse();
+    return a.join("")
+}
+
+function cz(a, b) {
+    var c = a[0];
+    a[0] = a[b % a.length];
+    a[b] = c;
+    return a
+};
 
 
 // Waveform
@@ -47,6 +65,7 @@ var audioContext = new AudioContext();
 var canvas;
 function get_stream() {
     var youtubeId = getUrlParameter("v");
+    $("#yta_waveform_load").css("display", "block");
     $.ajax({
         type: "GET", 
         url: "https://www.youtube.com/get_video_info",
@@ -59,6 +78,7 @@ function get_stream() {
             let audio_url = strms[strms.length-1]['url'];
             //console.log(audio_url);
             if (audio_url != undefined) {
+                $("#yta_waveform_able").css("display", "none");
                 xhr = new XMLHttpRequest();
                 xhr.responseType = 'arraybuffer';
                 xhr.onload = function() {
@@ -73,6 +93,9 @@ function get_stream() {
                 };
                 xhr.open('GET', audio_url, true);
                 xhr.send(null);
+            } else {
+                $("#yta_waveform_able").css("display", "block");
+                $("#yta_waveform_load").css("display", "none");
             }
         }, 
         error:function() {
@@ -88,7 +111,7 @@ function drawBuffer(width, height, canvas, buffer) {
     context.clearRect(0, 0, canvas.width, canvas.height);
     var data = buffer.getChannelData(0);
     var step = Math.ceil(data.length / width);
-    var amp = height/2;
+    var amp = (height/2) - 6;
     for(var i=0; i < width; i++){
         var min = 1.0;
         var max = -1.0;
@@ -100,12 +123,17 @@ function drawBuffer(width, height, canvas, buffer) {
                 max = datum;
         }
         context.fillStyle = "rgb(200, 200, 200)";
-        context.fillRect(i, (1+min)*amp, 1, Math.max(1,(max-min)*amp));
+
+        min = - Math.abs(Math.pow(min, 3));
+        max = Math.abs(Math.pow(max, 3));
+
+        $("#yta_waveform_load").css("display", "none");
+        context.fillRect(i, ((1+min)*amp)+4, 1, (Math.max(1,(max-min)*amp))+4);
     }
 }
 
 // change plau position
-$(document).on("click", "#yta_waveform", function(e){
+$(document).on("click", "#yta_waveform_panel", function(e){
     var parentOffset = $(this).offset(); 
     var relX = e.pageX - parentOffset.left;
     var position = relX / $(this).width();
@@ -165,8 +193,16 @@ function draw_tool() {
     $v_list.appendTo($videos);
     $videos.appendTo($("#content"));
     var $panel = $("<div/>").attr("id", "yta_tool");
+    /* top bar */
+    $("<div/>").attr("id", "yta_top").text("YouTube Range Annotation").appendTo($panel);
     /* waveform */
-    $("<canvas/>").attr("id", "yta_waveform").appendTo($panel);
+    $wf_panel = $("<div/>").attr("id", "yta_waveform_panel");
+    $wf = $("<canvas/>").attr("id", "yta_waveform");
+    $wf.appendTo($wf_panel);
+    $("<div/>").attr("id", "yta_waveform_able").text("Sorry, waveform is not available.").appendTo($wf_panel);
+    var gif_url = chrome.extension.getURL('img/loading.gif');
+    $("<img/>").attr("id", "yta_waveform_load").attr("src", gif_url).appendTo($wf_panel);
+    $wf_panel.appendTo($panel);
     /* play bar */
     $("<div/>").attr("id", "yta_play_position").appendTo($panel);
     /* time line */
@@ -183,7 +219,6 @@ function draw_tool() {
     /* bottom bar */
     var $bottom = $("<div/>").attr("id", "yta_bottom");
     $("<div/>").attr("id", "yta_show").text("Show annotated videos").appendTo($bottom);
-    $("<div/>").attr("id", "yta_cr").text("YouTube Range Annotation.").appendTo($bottom)
     $bottom.appendTo($panel);
 
     /* hidden tool */
@@ -191,7 +226,7 @@ function draw_tool() {
     $("<div/>").text('YouTube Range Annotation').appendTo($hidden);
     $hidden.appendTo($panel);
 
-    $("#info-contents").before($panel);
+    $panel.hide().insertBefore("#info-contents").slideDown();
     draw_note();
 }
 
@@ -199,6 +234,8 @@ function draw_tool() {
 /* draw annotated data */
 var wf_timeoutID = 0;
 function draw_note() {
+    $("#yta_waveform_able").css("display", "none");
+    $("#yta_waveform_load").css("display", "block");
     if (context != undefined) {
         context.clearRect(0, 0, canvas.width, canvas.height);
     }
@@ -300,6 +337,7 @@ function save_data() {
 
 /* show song list */
 $(document).on("click", "#yta_show", function(e){
+    window.scroll(0,0);
     $("#yta_video_content").empty();
     chrome.runtime.sendMessage({from: "content", subject: "showVideos"},  function(response) {
         for (let i in response["data"]) {
