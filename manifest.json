@@ -1,9 +1,14 @@
 {
     "manifest_version": 2, 
     "name": "YouTube Range Annotation", 
-    "short_name": "YTA", 
-    "version": "0.1", 
+    "short_name": "YouTube Range Annotation", 
+    "version": "0.2", 
     "description": "YouTube動画に範囲アノテーションする", 
+    "icons": {
+        "16" : "icon/icon_16.png", 
+        "48" : "icon/icon_48.png", 
+        "128" : "icon/icon_128.png"
+    }, 
     "content_scripts": [
         {
             "matches": ["https://www.youtube.com/*"], 
@@ -17,10 +22,11 @@
         "persistent": false
     }, 
     "browser_action": {
+        "default_icon": "icon/icon_48.png",
         "default_title": "YouTube Range Annotation",
         "default_popup": "popup.html"
     }, 
     "content_security_policy": "script-src 'self' https://fonts.googleapis.com; object-src 'self' ", 
-    "web_accessible_resources": ["js/*.js", "img/*.gif"], 
+    "web_accessible_resources": ["js/*.js", "img/*.gif", "icon/*.png"], 
     "permissions": ["tabs", "management"]
 }

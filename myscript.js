@@ -225,7 +225,8 @@ function draw_tool() {
 
     /* hidden tool */
     var $hidden = $("<div/>").attr("id", "yta_tool_hidden");
-    $("<div/>").text('YouTube Range Annotation').appendTo($hidden);
+    var icon_url = chrome.extension.getURL('icon/icon_512.png');
+    $("<img/>").attr("id", "yta_tool_icon").attr("src", icon_url).appendTo($hidden);
     $hidden.appendTo($panel);
 
     $panel.hide().insertBefore("#info-contents").slideDown();
