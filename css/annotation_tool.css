@@ -154,6 +154,16 @@
     top:15px;
 }
 
+#yta_conf_position {
+    position:absolute;
+    background:#80ffd5;
+    width:1px;;
+    height:calc(100% - 30px);
+    left:0px;
+    top:15px;
+    display:none;
+}
+
 
 
 #yta_note_unclear{

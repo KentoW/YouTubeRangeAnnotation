@@ -205,6 +205,8 @@ function draw_tool() {
     $wf_panel.appendTo($panel);
     /* play bar */
     $("<div/>").attr("id", "yta_play_position").appendTo($panel);
+    /* confirm bar */
+    $("<div/>").attr("id", "yta_conf_position").appendTo($panel);
     /* time line */
     var $work = $("<div/>").attr("id", "yta_work_space");
     for (let i=0; i<N_TL; i++) {
@@ -354,6 +356,11 @@ $(document).on("click", "#yta_show", function(e){
 $(document).on("click", "#yta_video_close", function(e){
     $("#yta_videos").css("display", "none");
 });
+$(document).on("click", "#yta_videos", function(e){
+    if (e.target == this) {
+        $(this).css("display", "none");
+    }
+});
 
 
 /* change play position */
@@ -368,7 +375,7 @@ function move_audio(tempX) {
 
 $(document).on("click", ".yta_tl_prev", function(e){
     var label_num = parseInt($(this).attr("id").split("_")[3]);
-    var currentTime = videoEl.currentTime-1;      // stupid
+    var currentTime = videoEl.currentTime-1.5;      // stupid
     let old_t = 0;
     for (let i in anno["data"][label_num]) {
         let st = Number(anno["data"][label_num][i]["st"]);
@@ -395,19 +402,32 @@ $(document).on("click", ".yta_tl_next", function(e){
     }
 });
 
+/* show confirm bar */
+var mouseX;
+$(document).on("mousemove", "#yta_tool", function(e){
+    mouseX = ((e.pageX)-($(this).offset().left));
+    if (mode == "none" || mode == "extend" || mode == "create") {
+        var position_ratio = mouseX/$(this).width();
+        $("#yta_conf_position").css({"display":"block", "left":String(position_ratio*100)+"%"});
+    } else if (mode == "select") {
+        var position_ratio = (mouseX - offset_left)/$(this).width();
+        $("#yta_conf_position").css({"display":"block", "left":String(position_ratio*100)+"%"});
+    }
+});
+$(document).on("mouseleave", "#yta_tool", function(e){
+    $("#yta_conf_position").css({"display":"none"});
+});
+
 
 /* add note */
 var mode = "none";
 var $select_obj = "";
 var offset_left = 0;
 var offset_wifth = 0;
-var mouseX;
 var startRatio = 0.0;
 var endRatio = 1.0;
 var timeoutID = 0;
 $(document).on("mousemove", ".yta_tl_line", function(e){
-    var areaOffset = $(this).offset();
-    mouseX = ((e.pageX)-(areaOffset.left));
     if (mode == "create") {
         $("#yta_note_unclear").css("width", String(mouseX - offset_left) + "px");
         if (timeoutID != 0) {
@@ -430,7 +450,7 @@ $(document).on("mousemove", ".yta_tl_line", function(e){
             clearTimeout(timeoutID);
         }
         timeoutID = setTimeout(function (){
-            move_audio(mouseX + 4);         // NOTE add width of nob (4px) 
+            move_audio(mouseX + 1);
         }, PREVIEW_INTERVAL);
     }
 });
@@ -455,6 +475,7 @@ $(document).on("click", ".yta_tl_line", function(e){
     } else if (mode == "create") {
         var note_left = 100 * $("#yta_note_unclear").position().left / $($select_obj).width();
         var note_width = 100 * $("#yta_note_unclear").width() / $($select_obj).width();
+        move_audio($("#yta_note_unclear").position().left + $("#yta_note_unclear").width());
         if (note_width < 1) {
             note_width = 1;
         }
@@ -525,10 +546,11 @@ $(document).on("click", ".yta_note_nob", function(e){
     if (mode == "none") {
         if ($(e.target).hasClass("yta_note_nob")) {
             $(this).parent().children(".yta_note_text").text("");
-            offset_left = mouseX - $(this).position().left - $(this).width(); 
+            var diff = (e.pageX)-($(this).offset().left);
+            offset_left = mouseX + 3 - diff - $(this).parent().width(); 
             $select_obj = $(this).parent();
             z_index++;
-            $(this).parent().css("z-index", z_index).addClass("select");
+            $($select_obj).css({"z-index":z_index, "width": String(mouseX - offset_left) + "px"}).addClass("select");
             mode = "extend";
         }
     } else if (mode == "extend") {
@@ -549,7 +571,7 @@ $(document).on("click", ".yta_note_nob", function(e){
         if (timeoutID != 0) {
             clearTimeout(timeoutID);
         }
-        move_audio($($select_obj).position().left + $($select_obj).width() + 4);    // NOTE add width of nob (4px) 
+        move_audio($($select_obj).position().left + $($select_obj).width());
         $($select_obj).css({"left": String(note_left) + "%", "width": String(note_width) + "%"});
         $select_obj = "";
         mode = "none";

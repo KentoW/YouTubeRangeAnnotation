@@ -78,7 +78,7 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
             }
         });
     } else if ((msg.from === 'content') && (msg.subject === 'showVideos')) {
-        db.annotation.toArray().then(function(annotations){
+        db.annotation.orderBy('title').toArray().then(function(annotations){
             if (annotations == undefined) {
                 sendResponse({data: []});
             } else {
