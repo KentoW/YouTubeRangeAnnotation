@@ -74,28 +74,33 @@ function get_stream() {
         success: function(response) {
             let get_video_info = queryStringMap(response);
             let pl_res = JSON.parse(get_video_info["player_response"]);
-            let strms = pl_res["streamingData"]["adaptiveFormats"];
-            let audio_url = strms[strms.length-1]['url'];
-            //console.log(audio_url);
-            if (audio_url != undefined) {
-                $("#yta_waveform_able").css("display", "none");
-                xhr = new XMLHttpRequest();
-                xhr.responseType = 'arraybuffer';
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        audioContext.decodeAudioData(xhr.response, function(buffer) { 
-                            canvas = document.getElementById("yta_waveform");
-                            canvas.height = $("#yta_waveform").height();
-                            canvas.width = $("#yta_waveform").width();
-                            drawBuffer(canvas.width, canvas.height, canvas, buffer); 
-                        });
-                    }
-                };
-                xhr.open('GET', audio_url, true);
-                xhr.send(null);
-            } else {
+            if (pl_res["streamingData"] == undefined) {
                 $("#yta_waveform_able").css("display", "block");
                 $("#yta_waveform_load").css("display", "none");
+            } else {
+                let strms = pl_res["streamingData"]["adaptiveFormats"];
+                let audio_url = strms[strms.length-1]['url'];
+                //console.log(audio_url);
+                if (audio_url != undefined) {
+                    $("#yta_waveform_able").css("display", "none");
+                    xhr = new XMLHttpRequest();
+                    xhr.responseType = 'arraybuffer';
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            audioContext.decodeAudioData(xhr.response, function(buffer) { 
+                                canvas = document.getElementById("yta_waveform");
+                                canvas.height = $("#yta_waveform").height();
+                                canvas.width = $("#yta_waveform").width();
+                                drawBuffer(canvas.width, canvas.height, canvas, buffer); 
+                            });
+                        }
+                    };
+                    xhr.open('GET', audio_url, true);
+                    xhr.send(null);
+                } else {
+                    $("#yta_waveform_able").css("display", "block");
+                    $("#yta_waveform_load").css("display", "none");
+                }
             }
         }, 
         error:function() {
@@ -122,7 +127,7 @@ function drawBuffer(width, height, canvas, buffer) {
             if (datum > max)
                 max = datum;
         }
-        context.fillStyle = "rgb(200, 200, 200)";
+        context.fillStyle = "rgba(256, 256, 256, 0.6)";
 
         min = - Math.abs(Math.pow(min, 3));
         max = Math.abs(Math.pow(max, 3));
@@ -195,6 +200,10 @@ function draw_tool() {
     var $panel = $("<div/>").attr("id", "yta_tool");
     /* top bar */
     $("<div/>").attr("id", "yta_top").text("YouTube Range Annotation").appendTo($panel);
+    /* play bar */
+    $("<div/>").attr("id", "yta_play_position").appendTo($panel);
+    /* confirm bar */
+    $("<div/>").attr("id", "yta_conf_position").appendTo($panel);
     /* waveform */
     $wf_panel = $("<div/>").attr("id", "yta_waveform_panel");
     $wf = $("<canvas/>").attr("id", "yta_waveform");
@@ -203,10 +212,6 @@ function draw_tool() {
     var gif_url = chrome.extension.getURL('img/loading.gif');
     $("<img/>").attr("id", "yta_waveform_load").attr("src", gif_url).appendTo($wf_panel);
     $wf_panel.appendTo($panel);
-    /* play bar */
-    $("<div/>").attr("id", "yta_play_position").appendTo($panel);
-    /* confirm bar */
-    $("<div/>").attr("id", "yta_conf_position").appendTo($panel);
     /* time line */
     var $work = $("<div/>").attr("id", "yta_work_space");
     for (let i=0; i<N_TL; i++) {

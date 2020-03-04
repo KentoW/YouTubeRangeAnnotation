@@ -1,3 +1,5 @@
+const INTERVAL = 1000;
+
 var db = new Dexie("yta_database");
 db.version(1).stores({annotation: 'id, title, data', label_setting: "id, num_labels, labels", on_off: "id, status"});
 db.open();
@@ -22,6 +24,86 @@ function draw_popup() {
         }
     });
 }
+
+/* show info */
+$(document).on("click", "#info", function(){
+    $("#important").css("display", "block");
+});
+$(document).on("click", "#close_imp", function(){
+    $("#important").css("display", "none");
+});
+
+/* count press button */
+var reset_timeout_id = 0;
+var delete_timeout_id = 0;
+var num_reset = 0;
+var num_delete = 0;
+$(document).on("click", "#reset_setting", function(e){
+    if (num_reset < 20) {
+        if (reset_timeout_id != 0) {
+            clearTimeout(reset_timeout_id);
+        }
+        num_reset = num_reset + 1;
+        $("#num_press").text(num_reset);
+        if (num_reset == 20) {
+            reset_setting();
+        }
+        reset_timeout_id = setTimeout(function (){
+            num_reset = 0;
+            $("#num_press").text(num_reset);
+        }, INTERVAL);
+    }
+});
+
+$(document).on("click", "#delete_db", function(e){
+    if (num_delete < 20) {
+        if (delete_timeout_id != 0) {
+            clearTimeout(delete_timeout_id);
+        }
+        num_delete = num_delete + 1;
+        $("#num_press").text(num_delete);
+        if (num_delete == 20) {
+            delete_db();
+        }
+        delete_timeout_id = setTimeout(function (){
+            num_delete = 0;
+            $("#num_press").text(num_delete);
+        }, INTERVAL);
+    }
+});
+
+
+/* reset setting */
+function reset_setting() {
+    $("#status").css("display", "none");
+    $("#success_reset").css("display", "block");
+    db.label_setting.put({
+        id: 1, 
+        num_labels: 4, 
+        labels: ["Label 1", "Label 2", "Label 3", "Label 4", "Label 5", "Label 6", "Label 7", "Label 8", "Label 9", "Label 10"]
+    })
+    db.on_off.put({
+        id: 1, 
+        status: "on"
+    })
+    setTimeout(function (){
+        $("#status").css("display", "block");
+        $("#success_reset").css("display", "none");
+    }, 7000);
+}
+
+/* delete db */
+function delete_db() {
+    $("#status").css("display", "none");
+    $("#success_delete").css("display", "block");
+    db.annotation.clear();
+    setTimeout(function (){
+        $("#status").css("display", "block");
+        $("#success_delete").css("display", "none");
+    }, 7000);
+}
+
+
 
 /* download data */
 $(document).on("click", "#download", function(){

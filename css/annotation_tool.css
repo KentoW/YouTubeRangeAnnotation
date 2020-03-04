@@ -43,7 +43,7 @@
     width:100%;
     height:40px;
     overflow:hidden;
-    background:rgb(39, 39, 39);
+    background:rgba(39, 39, 39, 0.5);
     cursor:pointer;
 }
 #yta_waveform {
@@ -57,7 +57,7 @@
     height:10px;
     top:calc(50% - 5px);
     text-align:center;
-    color:rgb(130, 130, 130);
+    color:rgba(130, 130, 130, 0.5);
     display:none;
 }
 #yta_waveform_load {
